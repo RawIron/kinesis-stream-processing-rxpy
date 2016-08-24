@@ -29,8 +29,29 @@ def infinite_stream():
   return Observable.from_iterable(itertools.count())
 
 
-raw_events = infinite_stream()
+def create_gdelt_event(x):
+  headers = ["Date", "Source", "Target", "CAMEOCode", "NumEvents", "NumArts", "QuadClass", "Goldstein",
+             "SourceGeoType", "SourceGeoLat", "SourceGeoLong",
+             "TargetGeoType", "TargetGeoLat", "TargetGeoLong",
+             "ActionGeoType", "ActionGeoLat", "ActionGeoLong"]
+  return dict(zip(headers, x.replace("\n", "").split("\t")))
+
+
+def file_stream():
+  return Observable.from_iterable(open("GDELT-MINI.TSV"))
+
+
+def create_event(x):
+  return create_gdelt_event(x)
+
+
+def stream():
+  return file_stream()
+
+
+raw_events = stream()
 
 raw_events \
-  .map(create_random_event) \
+  .map(create_event) \
   .subscribe(ConsoleEventWriter())
+
