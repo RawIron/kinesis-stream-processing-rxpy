@@ -2,8 +2,10 @@ import itertools
 import random
 import string
 from time import strftime, gmtime
+from Queue import Queue
 
 import inject
+import fromqueue
 from rx import Observable, Observer
 
 
@@ -75,6 +77,23 @@ def infinite_stream():
   return Observable.from_iterable(itertools.count())
 
 
+def finite_queue():
+  q = Queue()
+  for item in range(100):
+    q.put(item)
+  return Observable.from_queue(q)
+
+
+def finite_list():
+  return Observable.from_iterable([item for item in range(100)])
+
+
+def finite(binder):
+    binder.bind_to_provider(Stream, finite_queue)
+    binder.bind(EventWriter, ConsoleEventWriter())
+    binder.bind_to_provider(key_builder, create_random_key)
+
+
 def infinite_base(binder):
     binder.bind_to_provider(Stream, infinite_stream)
     binder.bind(EventWriter, ConsoleEventWriter())
@@ -95,7 +114,7 @@ def infinite_single(binder):
     binder.bind_to_provider(key_builder, create_single_key)
 
 
-inject.configure(infinite)
+inject.configure(finite)
 
 
 events = inject.instance(Stream)
