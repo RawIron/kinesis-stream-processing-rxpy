@@ -1,11 +1,14 @@
 import itertools
 import random
 import string
+import multiprocessing as mp
 
 import inject
 from rx import Observable, Observer
 
 
+# ReactiveX Observers
+#
 class EventWriter(Observer):
   pass
 
@@ -19,6 +22,22 @@ class ConsoleEventWriter(EventWriter):
     pass
 
 
+class QueueEventWriter(EventWriter):
+  def __init__(self, queue):
+    self.event_queue = queue
+
+  def on_next(self, x):
+    self.event_queue.put(x)
+
+  def on_error(self, x):
+    print x
+
+  def on_completed(self):
+    pass
+
+
+# Event Builders
+#
 def event_builder():
   pass
 
@@ -46,6 +65,8 @@ def create_gdelt_event():
   return gdelt_event
 
 
+# In-Streams
+#
 class Stream(Observable):
   pass
 
@@ -58,23 +79,48 @@ def file_stream():
   return Observable.from_iterable(open("GDELT-MINI.TSV"))
 
 
+def finite_list():
+  return Observable.from_iterable([item for item in range(100)])
+
+
+# Injector
+#
+def file_base(binder):
+  binder.bind_to_provider(Stream, file_stream)
+  binder.bind_to_provider(event_builder, create_gdelt_event)
+
+
 def file(binder):
-    binder.bind_to_provider(Stream, file_stream)
-    binder.bind(EventWriter, ConsoleEventWriter())
-    binder.bind_to_provider(event_builder, create_gdelt_event)
+  file_base(binder)
+  binder.bind(EventWriter, ConsoleEventWriter())
+
+
+def file_to_queue(binder):
+  file_base(binder)
+  queue = mp.Queue()
+  binder.bind(EventWriter, QueueEventWriter(queue))
+
 
 def infinite(binder):
-    binder.bind_to_provider(Stream, infinite_stream)
-    binder.bind(EventWriter, ConsoleEventWriter())
-    binder.bind_to_provider(event_builder, create_random_event)
+  binder.bind_to_provider(Stream, infinite_stream)
+  binder.bind(EventWriter, ConsoleEventWriter())
+  binder.bind_to_provider(event_builder, create_random_event)
 
 
-inject.configure(file)
+# Generate Event Stream
+#
+def produce():
+  raw_events = inject.instance(Stream)
+
+  raw_events \
+    .map(inject.instance(event_builder)) \
+    .subscribe(inject.instance(EventWriter))
 
 
-raw_events = inject.instance(Stream)
+# MAIN
+#
+if __name__ == '__main__':
 
-raw_events \
-  .map(inject.instance(event_builder)) \
-  .subscribe(inject.instance(EventWriter))
+  inject.configure(file_to_queue)
+  produce()
 
