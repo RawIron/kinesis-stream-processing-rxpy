@@ -73,7 +73,7 @@ def create_single_key():
   return single_key
 
 
-# Streams
+# In-Streams
 #
 class Stream(Observable):
   pass
