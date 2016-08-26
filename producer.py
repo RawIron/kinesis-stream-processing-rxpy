@@ -1,7 +1,7 @@
 import itertools
 import random
 import string
-from Queue import Queue
+import multiprocessing as mp
 
 import inject
 from rx import Observable, Observer
@@ -65,13 +65,9 @@ def create_gdelt_event():
   return gdelt_event
 
 
-# Streams
+# In-Streams
 #
 class Stream(Observable):
-  pass
-
-
-class EventQueue(Queue):
   pass
 
 
@@ -81,6 +77,10 @@ def infinite_stream():
 
 def file_stream():
   return Observable.from_iterable(open("GDELT-MINI.TSV"))
+
+
+def finite_list():
+  return Observable.from_iterable([item for item in range(100)])
 
 
 # Injector
@@ -97,8 +97,7 @@ def file(binder):
 
 def file_to_queue(binder):
   file_base(binder)
-  queue = Queue()
-  binder.bind(EventQueue, queue)
+  queue = mp.Queue()
   binder.bind(EventWriter, QueueEventWriter(queue))
 
 
