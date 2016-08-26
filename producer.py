@@ -7,6 +7,8 @@ import inject
 from rx import Observable, Observer
 
 
+# ReactiveX Observers
+#
 class EventWriter(Observer):
   pass
 
@@ -34,6 +36,8 @@ class QueueEventWriter(EventWriter):
     pass
 
 
+# Event Builders
+#
 def event_builder():
   pass
 
@@ -61,6 +65,8 @@ def create_gdelt_event():
   return gdelt_event
 
 
+# Streams
+#
 class Stream(Observable):
   pass
 
@@ -77,6 +83,8 @@ def file_stream():
   return Observable.from_iterable(open("GDELT-MINI.TSV"))
 
 
+# Injector
+#
 def file_base(binder):
   binder.bind_to_provider(Stream, file_stream)
   binder.bind_to_provider(event_builder, create_gdelt_event)
@@ -100,12 +108,20 @@ def infinite(binder):
   binder.bind_to_provider(event_builder, create_random_event)
 
 
-inject.configure(file_to_queue)
+# Generate Event Stream
+#
+def produce():
+  raw_events = inject.instance(Stream)
+
+  raw_events \
+    .map(inject.instance(event_builder)) \
+    .subscribe(inject.instance(EventWriter))
 
 
-raw_events = inject.instance(Stream)
+# MAIN
+#
+if __name__ == '__main__':
 
-raw_events \
-  .map(inject.instance(event_builder)) \
-  .subscribe(inject.instance(EventWriter))
+  inject.configure(file_to_queue)
+  produce()
 
