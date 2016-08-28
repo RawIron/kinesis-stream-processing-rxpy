@@ -6,6 +6,8 @@ import multiprocessing as mp
 import inject
 from rx import Observable, Observer
 
+import kinesis_writer as kinesis
+
 
 # ReactiveX Observers
 #
@@ -28,6 +30,20 @@ class QueueEventWriter(EventWriter):
 
   def on_next(self, x):
     self.event_queue.put(x)
+
+  def on_error(self, x):
+    print x
+
+  def on_completed(self):
+    pass
+
+
+class KinesisEventWriter(EventWriter):
+  def __init__(self, write_func):
+    self.write = write_func
+
+  def on_next(self, x):
+    self.write(x)
 
   def on_error(self, x):
     print x
@@ -101,6 +117,15 @@ def file_to_queue(binder):
   binder.bind(EventWriter, QueueEventWriter(queue))
 
 
+def file_to_kinesis(binder):
+  file_base(binder)
+  region = 'us-west-2'
+  stream = 'gdelt'
+  key_func = lambda x: x['Target']
+  binder.bind(EventWriter,
+              KinesisEventWriter(kinesis.create_write(region, stream, key_func)))
+
+
 def infinite(binder):
   binder.bind_to_provider(Stream, infinite_stream)
   binder.bind(EventWriter, ConsoleEventWriter())
@@ -121,6 +146,6 @@ def produce():
 #
 if __name__ == '__main__':
 
-  inject.configure(file_to_queue)
+  inject.configure(file_to_kinesis)
   produce()
 
