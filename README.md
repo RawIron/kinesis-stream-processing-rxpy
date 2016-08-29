@@ -38,6 +38,7 @@ And writes the result into persistent storage.
 
 
 ### Setup
+
 use `virtualenvwrapper` and create a *virtual environment* for python.
 ```
 mkvirtualenv streams
@@ -46,6 +47,16 @@ mkvirtualenv streams
 install the packages into the *virtual environment*
 ```
 pip install -r requirements.txt
+```
+
+configure the AWS environment locally.
+```
+aws configure
+```
+
+create a Kinesis stream in AWS.
+```
+aws kinesis create-stream --stream-name <your-stream> --shard-count 1
 ```
 
 
@@ -61,7 +72,8 @@ python run_stream_processing.py
 ```
 
 producer can either generate infinite stream of random events or finite stream of events from a file.
-to pick one of the two stream types change `inject.configure()` in `producer.py`.
+it is possible to write the events to *console*, local queue or *Kinesis* stream.
+change `inject.configure()` in `producer.py` to activate the suited configuration.
 
 ```
 python producer.py

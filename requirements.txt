@@ -1,2 +1,5 @@
 inject
 rx
+
+awscli
+boto3
