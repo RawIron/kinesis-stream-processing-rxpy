@@ -6,6 +6,7 @@ import multiprocessing as mp
 import inject
 from rx import Observable, Observer
 
+import settings
 import kinesis_writer as kinesis
 
 
@@ -61,7 +62,8 @@ def event_builder():
 def create_random_event():
 
   def random_event(x):
-    N = 32
+    N = settings.PRODUCER.RANDOM_EVENT_STR_LEN
+
     alphabet = string.ascii_uppercase + string.digits
 
     return {"id": x, "data": ''.join(random.choice(alphabet) for _ in range(N))}
@@ -92,11 +94,13 @@ def infinite_stream():
 
 
 def file_stream():
-  return Observable.from_iterable(open("GDELT-MINI.TSV"))
+  gdelt_file = settings.PRODUCER.GDELT_FILE
+  return Observable.from_iterable(open(gdelt_file))
 
 
 def finite_list():
-  return Observable.from_iterable([item for item in range(100)])
+  SIZE = settings.PRODUCER.FINITE_LIST_LEN
+  return Observable.from_iterable([item for item in range(SIZE)])
 
 
 # Injector
@@ -119,8 +123,8 @@ def file_to_queue(binder):
 
 def file_to_kinesis(binder):
   file_base(binder)
-  region = 'us-west-2'
-  stream = 'gdelt'
+  region = settings.KINESIS.REGION
+  stream = settings.KINESIS.STREAM_NAME
   key_func = lambda x: x['Target']
   binder.bind(EventWriter,
               KinesisEventWriter(kinesis.create_write(region, stream, key_func)))
