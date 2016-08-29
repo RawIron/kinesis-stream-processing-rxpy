@@ -16,7 +16,8 @@ def pipeline(binder):
   q = mp.Queue()
   binder.bind(mp.Queue, q)
 
-  binder.bind(producer.EventWriter, producer.QueueEventWriter(q))
+  write_func = producer.queue_create_write(q)
+  binder.bind(producer.EventWriter, producer.DefaultEventWriter(write_func))
   binder.bind(consumer.Stream, consumer.infinite_mpqueue_stream(q))
 
 

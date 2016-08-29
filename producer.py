@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import itertools
 import random
 import string
@@ -16,30 +18,7 @@ class EventWriter(Observer):
   pass
 
 
-class ConsoleEventWriter(EventWriter):
-  def on_next(self, x):
-    print x
-  def on_error(self, x):
-    print x
-  def on_completed(self):
-    pass
-
-
-class QueueEventWriter(EventWriter):
-  def __init__(self, queue):
-    self.event_queue = queue
-
-  def on_next(self, x):
-    self.event_queue.put(x)
-
-  def on_error(self, x):
-    print x
-
-  def on_completed(self):
-    pass
-
-
-class KinesisEventWriter(EventWriter):
+class DefaultEventWriter(EventWriter):
   def __init__(self, write_func):
     self.write = write_func
 
@@ -47,10 +26,14 @@ class KinesisEventWriter(EventWriter):
     self.write(x)
 
   def on_error(self, x):
-    print x
+    print(x)
 
   def on_completed(self):
     pass
+
+
+def queue_create_write(mpqueue):
+  return lambda x: mpqueue.put(x)
 
 
 # Event Builders
@@ -110,15 +93,15 @@ def file_base(binder):
   binder.bind_to_provider(event_builder, create_gdelt_event)
 
 
-def file(binder):
+def file_to_console(binder):
   file_base(binder)
-  binder.bind(EventWriter, ConsoleEventWriter())
+  binder.bind(EventWriter, DefaultEventWriter(print))
 
 
 def file_to_queue(binder):
   file_base(binder)
   queue = mp.Queue()
-  binder.bind(EventWriter, QueueEventWriter(queue))
+  binder.bind(EventWriter, DefaultEventWriter(queue_create_write(queue)))
 
 
 def file_to_kinesis(binder):
@@ -127,12 +110,12 @@ def file_to_kinesis(binder):
   stream = settings.KINESIS.STREAM_NAME
   key_func = lambda x: x['Target']
   binder.bind(EventWriter,
-              KinesisEventWriter(kinesis.create_write(region, stream, key_func)))
+              DefaultEventWriter(kinesis.create_write(region, stream, key_func)))
 
 
-def infinite(binder):
+def infinite_to_console(binder):
   binder.bind_to_provider(Stream, infinite_stream)
-  binder.bind(EventWriter, ConsoleEventWriter())
+  binder.bind(EventWriter, DefaultEventWriter(print))
   binder.bind_to_provider(event_builder, create_random_event)
 
 
