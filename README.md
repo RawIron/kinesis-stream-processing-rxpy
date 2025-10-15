@@ -6,6 +6,18 @@ The clients, for example mobile devices, push events directly into a Kinesis Str
 In this exercise the incoming events are generated from a file or randomly.
 
 
+## Could AWS lambda functions be used?
+
+To create quickly an implementation that comes with a lot of *production ready* features the *AWS lambda function* is worth a short look.
+The question is though can *AWS lambda functions* do stream processing?
+
+A *lambda function* triggered by events arriving in *Kinesis* get called with a batch of events.
+The *lambda function* works on the event batch and returns the result.
+The programming model is that for each batch of events a `lambda function` instance is created and after completion destroyed.
+
+Thus stream processing is not a use-case for *lambda functions*.
+
+
 ## ReactiveX Python
 
 Start with an implementation as simple as possible.
