@@ -1,3 +1,6 @@
+from __future__ import print_function
+
+import sys
 import itertools
 import random
 import string
@@ -9,86 +12,104 @@ import fromqueue
 from rx import Observable, Observer
 
 
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
+
 
 # ReactiveX Observers
 #
 class EventWriter(Observer):
-  pass
+    pass
+
+
+class FileEventWriter(EventWriter):
+    def __init__(self, filename):
+        self._fp = open(filename, mode='a')
+
+    def on_next(self, x):
+        self._fp.write(x)
+
+    def on_error(self, x):
+        self._fp.close()
+        eprint(x)
+
+    def on_completed(self):
+        self._fp.close()
 
 
 class ConsoleEventWriter(EventWriter):
-  def on_next(self, x):
-    print x
-  def on_error(self, x):
-    print x
-  def on_completed(self):
-    pass
+    def on_next(self, x):
+        print(x)
+
+    def on_error(self, x):
+        eprint(x)
+
+    def on_completed(self):
+        pass
 
 
 class GroupCounter(Observer):
-  def on_next(self, events):
-    events \
-      .map(lambda event: (event[0], 1)) \
-      .reduce(lambda acc, x: (x[0], acc[1] + x[1])) \
-      .subscribe(ConsoleEventWriter())
+    def on_next(self, events):
+        events \
+            .map(lambda event: (event[0], 1)) \
+            .reduce(lambda acc, x: (x[0], acc[1] + x[1])) \
+            .subscribe(ConsoleEventWriter())
 
-  def on_error(self, x):
-    print x
+    def on_error(self, x):
+        eprint(x)
 
-  def on_completed(self):
-    pass
+    def on_completed(self):
+        pass
 
 
 def group_timeout():
-  return 64000
+    return 64000
 
 
 # Event Key Builders
 #
 def key_builder():
-  pass
+    pass
 
 
 def create_timestamp_key():
+    def timestamp_key(event):
+        return (strftime("%Y%m%d%H%M", gmtime()), event)
 
-  def timestamp_key(event):
-    return (strftime("%Y%m%d%H%M", gmtime()), event)
-
-  return timestamp_key
+    return timestamp_key
 
 
 def create_random_key():
+    def random_key(event):
+        return (random.randint(0, 1000), event)
 
-  def random_key(event):
-    return (random.randint(0,1000), event)
-
-  return random_key
+    return random_key
 
 
 def create_single_key():
+    def single_key(event):
+        return ('one-key', event)
 
-  def single_key(event):
-    return ('one-key', event)
-
-  return single_key
+    return single_key
 
 
 # In-Streams
 #
 class Stream(Observable):
-  pass
+    pass
 
 
 def infinite_stream():
-  return Observable.from_iterable(itertools.count())
+    return Observable.from_iterable(itertools.count())
 
 
 def infinite_mpqueue_stream(q):
-  return Observable.from_queue(q)
+    return Observable.from_queue(q)
 
 
 def finite_list():
-  return Observable.from_iterable([item for item in range(100)])
+    return Observable.from_iterable([item for item in range(100)])
 
 
 # Injector
@@ -133,23 +154,21 @@ def infinite_single(binder):
 # Count events per minute
 #
 def consume():
-  events = inject.instance(Stream)
+    events = inject.instance(Stream)
 
-  events \
-    .map(inject.instance(key_builder)) \
-    .group_by_until(
-      lambda event: event[0],
-      None,
-      lambda x: Observable.timer(group_timeout()),
-      None
-    ) \
-  .subscribe(GroupCounter())
+    events \
+        .map(inject.instance(key_builder)) \
+        .group_by_until(
+            lambda event: event[0],
+            None,
+            lambda x: Observable.timer(group_timeout()),
+            None
+        ) \
+        .subscribe(GroupCounter())
 
 
 # MAIN
 #
 if __name__ == '__main__':
-
-  inject.configure(finite)
-  consume()
-
+    inject.configure(finite)
+    consume()
